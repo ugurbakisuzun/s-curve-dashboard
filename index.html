@@ -3,113 +3,356 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S-Curve Dashboard - Deployment Ready</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/Recharts.js"></script>
+    <title>S-Curve Dashboard - Project Analysis Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for better deployment compatibility */
-        .dashboard-container {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 1.5rem;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
         .card {
             background: white;
-            border-radius: 1rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
         }
-        .btn-primary {
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .btn {
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
+            padding: 12px 24px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 16px;
             font-weight: 600;
             transition: all 0.3s ease;
+            margin: 5px;
         }
-        .btn-primary:hover {
+
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-        .activity-button {
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            border: 2px solid #e5e7eb;
-            background: white;
-            color: #374151;
-            cursor: pointer;
-            transition: all 0.3s ease;
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
             text-align: center;
-            font-size: 0.875rem;
-        }
-        .activity-button.selected {
-            border-color: #3b82f6;
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-        .activity-button:hover {
-            border-color: #9ca3af;
-        }
-        .file-upload {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px dashed #d1d5db;
-            border-radius: 0.5rem;
             transition: border-color 0.3s ease;
+            cursor: pointer;
         }
-        .file-upload:hover {
-            border-color: #60a5fa;
+
+        .file-upload-area:hover {
+            border-color: #667eea;
         }
+
+        .file-upload-area.dragover {
+            border-color: #667eea;
+            background-color: #f0f8ff;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 20px;
+            margin-bottom: 30px;
         }
-        .stat-card {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+
+        .stat-item {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
         }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+
         .activity-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.75rem;
-            margin: 1.5rem 0;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .activity-btn {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .activity-btn:hover {
+            border-color: #667eea;
+        }
+
+        .activity-btn.selected {
+            border-color: #667eea;
+            background: #f0f8ff;
+            color: #667eea;
+        }
+
+        .activity-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .activity-total {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .error {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .success {
+            display: none;
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .success.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .activity-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            body {
+                background: white;
+            }
+            
+            .card {
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 S-Curve Analysis Dashboard</h1>
+            <p>Interactive project resource analysis and visualization tool</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h2>Project Analysis Dashboard</h2>
+                    <p id="data-source">Using sample data - upload your file to analyze your project</p>
+                </div>
+                <div class="no-print">
+                    <button class="btn" onclick="exportToPDF()">📄 Print/Export PDF</button>
+                    <button class="btn" onclick="downloadTemplate()">📊 Download Template</button>
+                    <button class="btn btn-secondary" onclick="resetData()" id="resetBtn" style="display: none;">🔄 Reset to Sample</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload -->
+        <div class="card no-print">
+            <h3>📤 Upload Your Data</h3>
+            <div class="file-upload-area" id="fileUploadArea">
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+                <div>
+                    <p style="font-size: 1.2em; margin-bottom: 10px;">📁 Drop your CSV or Excel file here</p>
+                    <p style="color: #666;">or click to browse</p>
+                    <p style="font-size: 0.9em; color: #999; margin-top: 10px;">
+                        Format: Activity ID | Activity Name | Monthly Data...
+                    </p>
+                </div>
+            </div>
+            <div class="loading" id="loading">
+                <p>🔄 Processing your file...</p>
+            </div>
+            <div class="error" id="error"></div>
+            <div class="success" id="success"></div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="card">
+            <h3>📈 Project Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalActivities">0</div>
+                    <div class="stat-label">Total Activities</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalResources">0</div>
+                    <div class="stat-label">Total Resources</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="timePeriod">0</div>
+                    <div class="stat-label">Time Periods</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="peakMonth">-</div>
+                    <div class="stat-label">Peak Month</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main S-Curve Chart -->
+        <div class="card">
+            <h3>📊 Overall Project S-Curve</h3>
+            <p style="color: #666; margin-bottom: 20px;">Monthly resource distribution with cumulative S-curve progression</p>
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Activity Selection -->
+        <div class="card no-print">
+            <h3>🎯 Select Activities for Detailed Analysis</h3>
+            <p style="color: #666; margin-bottom: 15px;">Click activities to include/exclude from the detailed chart below</p>
+            <div class="activity-grid" id="activityGrid"></div>
+        </div>
+
+        <!-- Individual Activities Chart -->
+        <div class="card">
+            <h3>📈 Individual Activity S-Curves</h3>
+            <p style="color: #666; margin-bottom: 20px;">Selected activities with monthly and cumulative views</p>
+            <div class="chart-container">
+                <canvas id="detailChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Activity Summary Table -->
+        <div class="card">
+            <h3>📋 Activity Summary</h3>
+            <div style="overflow-x: auto;">
+                <table id="summaryTable" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Activity ID</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Activity Name</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">Total Resources</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">% of Total</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Active Months</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // S-Curve Dashboard Component (React)
-        const { useState, useEffect, useRef } = React;
-        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Bar } = Recharts;
+        // Global variables
+        let projectData = [];
+        let timeColumns = [];
+        let selectedActivities = [];
+        let mainChart = null;
+        let detailChart = null;
 
-        const SCurveDashboard = () => {
-            const [chartData, setChartData] = useState([]);
-            const [activityData, setActivityData] = useState([]);
-            const [selectedActivities, setSelectedActivities] = useState([]);
-            const [isUsingUploadedData, setIsUsingUploadedData] = useState(false);
-            const [fileName, setFileName] = useState('');
-            const [loading, setLoading] = useState(false);
-            const fileInputRef = useRef(null);
-
-            // Sample CSV data
-            const csvData = `Activity ID,Activity Name,Start,Finish,Original Duration,Spreadsheet Field,01-Aug-22,01-Sep-22,01-Oct-22,01-Nov-22,01-Dec-22,01-Jan-23,01-Feb-23,01-Mar-23,01-Apr-23,01-May-23,01-Jun-23,01-Jul-23,01-Aug-23,01-Sep-23,01-Oct-23,01-Nov-23,01-Dec-23,01-Jan-24,01-Feb-24,01-Mar-24,01-Apr-24,01-May-24,01-Jun-24,01-Jul-24,01-Aug-24,01-Sep-24,01-Oct-24,01-Nov-24,01-Dec-24,01-Jan-25,01-Feb-25,01-Mar-25
+        // Sample data
+        const sampleCSV = `Activity ID,Activity Name,Start,Finish,Original Duration,Spreadsheet Field,01-Aug-22,01-Sep-22,01-Oct-22,01-Nov-22,01-Dec-22,01-Jan-23,01-Feb-23,01-Mar-23,01-Apr-23,01-May-23,01-Jun-23,01-Jul-23,01-Aug-23,01-Sep-23,01-Oct-23,01-Nov-23,01-Dec-23,01-Jan-24,01-Feb-24,01-Mar-24,01-Apr-24,01-May-24,01-Jun-24,01-Jul-24,01-Aug-24,01-Sep-24,01-Oct-24,01-Nov-24,01-Dec-24,01-Jan-25,01-Feb-25,01-Mar-25
 MEP Labour,,10-Nov-23,19-Feb-25,309d,Budgeted Labor Units,,,,,,,,,,,,,,,,2162,2498,6049,11138,30055,65602,74576,103401,114529,94676,84343,58010,25818,9226,5189,1874,
 J Coffey Labour,,09-Jan-23,05-Sep-24,414d,Budgeted Labor Units,,,,,,5137,8236,7012,11742,18592,23239,20630,27643,24544,21201,26175,10356,12313,13128,8072,3669,1386,1631,2854,4159,326,,,,,,
 Severefield Labour,,21-Aug-23,06-Nov-24,302d,Budgeted Labor Units,,,,,,,,,,,,,256,1024,1504,2592,4352,5472,5504,5824,8544,8384,10176,7552,3328,1056,1376,256,,,,
@@ -117,383 +360,490 @@ Commercial Manager,,16-Aug-22 A,05-Sep-24,507d,Budgeted Labor Units,144,408,1792
 Concrete Slab Labour,,23-Nov-23,23-Sep-24,203d,Budgeted Labor Units,,,,,,,,,,,,,,,,672,800,3008,5888,3872,3104,4576,5216,3408,3984,1312,,,,,,
 Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,,576,384,1728,1872,1872,1344,1968,816,144,,,,`;
 
-            const parseData = (csvContent = null) => {
-                const dataToUse = csvContent || csvData;
-                const lines = dataToUse.trim().split('\n');
-                const headers = lines[0].split(',');
-                
-                let dateStartIndex = 6;
-                for (let i = 0; i < headers.length; i++) {
-                    if (headers[i].match(/\d{2}-\w{3}-\d{2}/) || headers[i].includes('Aug') || headers[i].includes('Jan')) {
-                        dateStartIndex = i;
-                        break;
-                    }
+        // Initialize the dashboard
+        function init() {
+            setupEventListeners();
+            parseData(sampleCSV);
+            updateDataSource('Sample data loaded');
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const fileInput = document.getElementById('fileInput');
+            const fileUploadArea = document.getElementById('fileUploadArea');
+
+            fileUploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileUpload);
+
+            // Drag and drop
+            fileUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUploadArea.classList.add('dragover');
+            });
+
+            fileUploadArea.addEventListener('dragleave', () => {
+                fileUploadArea.classList.remove('dragover');
+            });
+
+            fileUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
                 }
+            });
+        }
+
+        // Handle file upload
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        // Process uploaded file
+        function handleFile(file) {
+            showLoading(true);
+            hideMessages();
+
+            const fileName = file.name.toLowerCase();
+            
+            if (fileName.endsWith('.csv')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        parseData(e.target.result);
+                        updateDataSource(`Uploaded: ${file.name}`);
+                        showSuccess(`Successfully loaded ${file.name}`);
+                        document.getElementById('resetBtn').style.display = 'inline-block';
+                    } catch (error) {
+                        showError('Error parsing CSV file. Please check the format.');
+                    }
+                    showLoading(false);
+                };
+                reader.readAsText(file);
+            } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const workbook = XLSX.read(e.target.result, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const csvData = XLSX.utils.sheet_to_csv(firstSheet);
+                        parseData(csvData);
+                        updateDataSource(`Uploaded: ${file.name}`);
+                        showSuccess(`Successfully loaded ${file.name}`);
+                        document.getElementById('resetBtn').style.display = 'inline-block';
+                    } catch (error) {
+                        showError('Error parsing Excel file. Please check the format.');
+                    }
+                    showLoading(false);
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                showError('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
+                showLoading(false);
+            }
+        }
+
+        // Parse CSV data
+        function parseData(csvContent) {
+            const lines = csvContent.trim().split('\n');
+            const headers = lines[0].split(',');
+            
+            // Find date columns (starting from column 6 typically)
+            let dateStartIndex = 6;
+            for (let i = 0; i < headers.length; i++) {
+                if (headers[i].match(/\d{2}-\w{3}-\d{2}/) || headers[i].includes('Aug') || headers[i].includes('Jan')) {
+                    dateStartIndex = i;
+                    break;
+                }
+            }
+            
+            timeColumns = headers.slice(dateStartIndex);
+            projectData = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const activityId = values[0]?.trim();
+                const activityName = values[1]?.trim();
                 
-                const timeColumns = headers.slice(dateStartIndex);
-                const activities = [];
-                const chartDataMap = {};
+                if (!activityId || activityId === '') continue;
 
-                timeColumns.forEach(month => {
-                    chartDataMap[month] = { month, totalMonthly: 0, totalCumulative: 0 };
+                const monthlyValues = [];
+                let total = 0;
+
+                for (let j = dateStartIndex; j < values.length && j < headers.length; j++) {
+                    const value = parseFloat(values[j]?.replace(/"/g, '')) || 0;
+                    monthlyValues.push(value);
+                    total += value;
+                }
+
+                if (total > 0) {
+                    projectData.push({
+                        id: activityId,
+                        name: activityName || activityId,
+                        monthlyValues: monthlyValues,
+                        total: total,
+                        color: generateColor(i)
+                    });
+                }
+            }
+
+            projectData.sort((a, b) => b.total - a.total);
+            selectedActivities = projectData.slice(0, Math.min(5, projectData.length)).map(a => a.id);
+            
+            updateDashboard();
+        }
+
+        // Generate color for activities
+        function generateColor(index) {
+            const hue = (index * 137.5) % 360;
+            return `hsl(${hue}, 70%, 50%)`;
+        }
+
+        // Update all dashboard elements
+        function updateDashboard() {
+            updateStatistics();
+            updateActivityGrid();
+            updateCharts();
+            updateSummaryTable();
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const totalResources = projectData.reduce((sum, activity) => sum + activity.total, 0);
+            const peakMonthIndex = findPeakMonth();
+            
+            document.getElementById('totalActivities').textContent = projectData.length;
+            document.getElementById('totalResources').textContent = formatNumber(totalResources);
+            document.getElementById('timePeriod').textContent = timeColumns.length;
+            document.getElementById('peakMonth').textContent = peakMonthIndex >= 0 ? timeColumns[peakMonthIndex].split('-')[1] : '-';
+        }
+
+        // Find peak month
+        function findPeakMonth() {
+            const monthlyTotals = new Array(timeColumns.length).fill(0);
+            
+            projectData.forEach(activity => {
+                activity.monthlyValues.forEach((value, index) => {
+                    monthlyTotals[index] += value;
                 });
+            });
 
-                for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].split(',');
-                    const activityId = values[0]?.trim();
-                    const activityName = values[1]?.trim();
-                    
-                    if (!activityId || activityId === '') continue;
+            return monthlyTotals.indexOf(Math.max(...monthlyTotals));
+        }
 
-                    const monthlyValues = [];
-                    const cumulativeValues = [];
-                    let cumulative = 0;
+        // Update activity selection grid
+        function updateActivityGrid() {
+            const grid = document.getElementById('activityGrid');
+            grid.innerHTML = '';
 
-                    for (let j = dateStartIndex; j < values.length && j < headers.length; j++) {
-                        const value = parseFloat(values[j]?.replace(/"/g, '')) || 0;
-                        monthlyValues.push(value);
-                        cumulative += value;
-                        cumulativeValues.push(cumulative);
+            projectData.forEach(activity => {
+                const btn = document.createElement('div');
+                btn.className = `activity-btn ${selectedActivities.includes(activity.id) ? 'selected' : ''}`;
+                btn.onclick = () => toggleActivity(activity.id);
+                btn.innerHTML = `
+                    <div class="activity-name">${activity.id}</div>
+                    <div class="activity-total">${formatNumber(activity.total)}</div>
+                `;
+                grid.appendChild(btn);
+            });
+        }
 
-                        const monthIndex = j - dateStartIndex;
-                        const month = timeColumns[monthIndex];
-                        if (chartDataMap[month]) {
-                            chartDataMap[month].totalMonthly += value;
-                            chartDataMap[month][`${activityId}_monthly`] = value;
-                            chartDataMap[month][`${activityId}_cumulative`] = cumulative;
+        // Toggle activity selection
+        function toggleActivity(activityId) {
+            if (selectedActivities.includes(activityId)) {
+                selectedActivities = selectedActivities.filter(id => id !== activityId);
+            } else {
+                selectedActivities.push(activityId);
+            }
+            updateActivityGrid();
+            updateDetailChart();
+        }
+
+        // Update charts
+        function updateCharts() {
+            updateMainChart();
+            updateDetailChart();
+        }
+
+        // Update main S-curve chart
+        function updateMainChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            // Calculate monthly and cumulative totals
+            const monthlyTotals = new Array(timeColumns.length).fill(0);
+            const cumulativeTotals = new Array(timeColumns.length).fill(0);
+            
+            projectData.forEach(activity => {
+                activity.monthlyValues.forEach((value, index) => {
+                    monthlyTotals[index] += value;
+                });
+            });
+
+            let cumulative = 0;
+            cumulativeTotals.forEach((_, index) => {
+                cumulative += monthlyTotals[index];
+                cumulativeTotals[index] = cumulative;
+            });
+
+            if (mainChart) {
+                mainChart.destroy();
+            }
+
+            mainChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: timeColumns,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Monthly Resources',
+                            data: monthlyTotals,
+                            backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                            borderColor: 'rgba(102, 126, 234, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'line',
+                            label: 'Cumulative S-Curve',
+                            data: cumulativeTotals,
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.3,
+                            yAxisID: 'y1'
                         }
-                    }
-
-                    if (cumulative > 0) {
-                        activities.push({
-                            id: activityId,
-                            name: activityName || activityId,
-                            monthlyValues,
-                            cumulativeValues,
-                            total: cumulative,
-                            color: `hsl(${(i * 137.5) % 360}, 70%, 50%)`
-                        });
-                    }
-                }
-
-                let runningTotal = 0;
-                Object.keys(chartDataMap).forEach(month => {
-                    runningTotal += chartDataMap[month].totalMonthly;
-                    chartDataMap[month].totalCumulative = runningTotal;
-                });
-
-                const chartDataArray = Object.values(chartDataMap).filter(item => item.month);
-                setChartData(chartDataArray);
-                setActivityData(activities.sort((a, b) => b.total - a.total));
-                setSelectedActivities(activities.slice(0, 5).map(a => a.id));
-            };
-
-            const handleFileUpload = async (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                setLoading(true);
-                setFileName(file.name);
-
-                try {
-                    if (file.name.toLowerCase().endsWith('.csv')) {
-                        const text = await file.text();
-                        parseData(text);
-                        setIsUsingUploadedData(true);
-                    } else if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
-                        const arrayBuffer = await file.arrayBuffer();
-                        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
-                        const csvContent = XLSX.utils.sheet_to_csv(worksheet);
-                        parseData(csvContent);
-                        setIsUsingUploadedData(true);
-                    }
-                } catch (error) {
-                    alert('Error reading file. Please ensure it follows the same format as the sample data.');
-                    console.error('File parsing error:', error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            const resetToSampleData = () => {
-                setIsUsingUploadedData(false);
-                setFileName('');
-                parseData();
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-            };
-
-            const exportToPDF = () => {
-                window.print();
-            };
-
-            const formatNumber = (value) => {
-                if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-                if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
-                return value.toString();
-            };
-
-            const toggleActivity = (activityId) => {
-                setSelectedActivities(prev => 
-                    prev.includes(activityId) 
-                        ? prev.filter(id => id !== activityId)
-                        : [...prev, activityId]
-                );
-            };
-
-            useEffect(() => {
-                parseData();
-            }, []);
-
-            return React.createElement('div', { className: 'dashboard-container' },
-                React.createElement('div', { className: 'max-w-7xl mx-auto' },
-                    // Header
-                    React.createElement('div', { className: 'card' },
-                        React.createElement('div', { className: 'flex items-center justify-between flex-wrap gap-4' },
-                            React.createElement('div', null,
-                                React.createElement('h1', { className: 'text-3xl font-bold text-gray-800' }, 
-                                    '📊 S-Curve Visual Dashboard'),
-                                React.createElement('p', { className: 'text-gray-600 mt-2' },
-                                    isUsingUploadedData 
-                                        ? `Analyzing: ${fileName}` 
-                                        : 'Interactive S-curve visualization - upload your data or use sample data'
-                                )
-                            ),
-                            React.createElement('div', { className: 'flex gap-3' },
-                                React.createElement('button', { 
-                                    onClick: exportToPDF,
-                                    className: 'btn-primary'
-                                }, '📄 Print/PDF'),
-                                React.createElement('button', { 
-                                    onClick: () => alert('Download Excel template feature - integrate with your Excel workflow'),
-                                    className: 'btn-primary'
-                                }, '📊 Excel Template')
-                            )
-                        )
-                    ),
-
-                    // File Upload
-                    React.createElement('div', { className: 'card' },
-                        React.createElement('h2', { className: 'text-xl font-bold text-gray-800 mb-4' }, 
-                            '📤 Upload Your Data'),
-                        React.createElement('div', { className: 'flex items-center gap-4' },
-                            React.createElement('div', { className: 'flex-1' },
-                                React.createElement('input', {
-                                    ref: fileInputRef,
-                                    type: 'file',
-                                    accept: '.csv,.xlsx,.xls',
-                                    onChange: handleFileUpload,
-                                    className: 'file-upload',
-                                    disabled: loading
-                                }),
-                                React.createElement('p', { className: 'text-sm text-gray-500 mt-2' },
-                                    'Upload CSV or Excel files with the same format: Activity ID, Activity Name, then monthly columns'
-                                )
-                            ),
-                            isUsingUploadedData && React.createElement('button', {
-                                onClick: resetToSampleData,
-                                className: 'btn-primary'
-                            }, '🔄 Reset to Sample')
-                        ),
-                        loading && React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg' },
-                            React.createElement('div', { className: 'flex items-center gap-2' },
-                                React.createElement('span', { className: 'text-blue-700' }, '🔄 Processing file...')
-                            )
-                        )
-                    ),
-
-                    // Summary Stats
-                    React.createElement('div', { className: 'stats-grid' },
-                        React.createElement('div', { className: 'stat-card' },
-                            React.createElement('div', null,
-                                React.createElement('p', { className: 'text-sm text-gray-600' }, 'Total Activities'),
-                                React.createElement('p', { className: 'text-2xl font-bold text-gray-800' }, activityData.length)
-                            )
-                        ),
-                        React.createElement('div', { className: 'stat-card' },
-                            React.createElement('div', null,
-                                React.createElement('p', { className: 'text-sm text-gray-600' }, 'Total Resources'),
-                                React.createElement('p', { className: 'text-2xl font-bold text-gray-800' },
-                                    formatNumber(activityData.reduce((sum, activity) => sum + activity.total, 0))
-                                )
-                            )
-                        ),
-                        React.createElement('div', { className: 'stat-card' },
-                            React.createElement('div', null,
-                                React.createElement('p', { className: 'text-sm text-gray-600' }, 'Time Period'),
-                                React.createElement('p', { className: 'text-lg font-bold text-gray-800' }, `${chartData.length} Months`)
-                            )
-                        ),
-                        React.createElement('div', { className: 'stat-card' },
-                            React.createElement('div', null,
-                                React.createElement('p', { className: 'text-sm text-gray-600' }, 'Peak Month'),
-                                React.createElement('p', { className: 'text-lg font-bold text-gray-800' },
-                                    chartData.reduce((max, current) => 
-                                        current.totalMonthly > max.totalMonthly ? current : max, 
-                                        chartData[0] || {}
-                                    )?.month?.split('-')[1] || 'N/A'
-                                )
-                            )
-                        )
-                    ),
-
-                    // Main Chart
-                    React.createElement('div', { className: 'card' },
-                        React.createElement('h2', { className: 'text-2xl font-bold text-gray-800 mb-4' }, 
-                            'Overall Project S-Curve'),
-                        React.createElement('p', { className: 'text-gray-600 mb-4' },
-                            'Monthly resource distribution (bars) with cumulative S-curve progression (line)'),
-                        React.createElement(ResponsiveContainer, { width: '100%', height: 400 },
-                            React.createElement(ComposedChart, { data: chartData },
-                                React.createElement(CartesianGrid, { strokeDasharray: '3 3' }),
-                                React.createElement(XAxis, { 
-                                    dataKey: 'month',
-                                    angle: -45,
-                                    textAnchor: 'end',
-                                    height: 80,
-                                    fontSize: 11
-                                }),
-                                React.createElement(YAxis, { yAxisId: 'monthly', orientation: 'left' }),
-                                React.createElement(YAxis, { yAxisId: 'cumulative', orientation: 'right' }),
-                                React.createElement(Tooltip),
-                                React.createElement(Legend),
-                                React.createElement(Bar, {
-                                    yAxisId: 'monthly',
-                                    dataKey: 'totalMonthly',
-                                    fill: '#3B82F6',
-                                    name: 'Monthly Resources',
-                                    opacity: 0.7
-                                }),
-                                React.createElement(Line, {
-                                    yAxisId: 'cumulative',
-                                    type: 'monotone',
-                                    dataKey: 'totalCumulative',
-                                    stroke: '#EF4444',
-                                    strokeWidth: 3,
-                                    name: 'Cumulative S-Curve'
-                                })
-                            )
-                        )
-                    ),
-
-                    // Activity Selection
-                    React.createElement('div', { className: 'card' },
-                        React.createElement('h3', { className: 'text-xl font-bold text-gray-800 mb-4' },
-                            'Select Activities for Individual S-Curves'),
-                        React.createElement('div', { className: 'activity-grid' },
-                            activityData.map(activity =>
-                                React.createElement('button', {
-                                    key: activity.id,
-                                    onClick: () => toggleActivity(activity.id),
-                                    className: `activity-button ${selectedActivities.includes(activity.id) ? 'selected' : ''}`
-                                },
-                                    React.createElement('div', { className: 'font-medium' }, activity.id),
-                                    React.createElement('div', { className: 'text-xs opacity-75' }, formatNumber(activity.total))
-                                )
-                            )
-                        )
-                    ),
-
-                    // Individual Activities Chart
-                    React.createElement('div', { className: 'card' },
-                        React.createElement('h2', { className: 'text-2xl font-bold text-gray-800 mb-4' },
-                            'Individual Activity S-Curves'),
-                        React.createElement('p', { className: 'text-gray-600 mb-4' },
-                            'Monthly distribution and cumulative S-curves for selected activities'),
-                        React.createElement(ResponsiveContainer, { width: '100%', height: 500 },
-                            React.createElement(ComposedChart, { data: chartData },
-                                React.createElement(CartesianGrid, { strokeDasharray: '3 3' }),
-                                React.createElement(XAxis, { 
-                                    dataKey: 'month',
-                                    angle: -45,
-                                    textAnchor: 'end',
-                                    height: 80,
-                                    fontSize: 11
-                                }),
-                                React.createElement(YAxis, { yAxisId: 'monthly', orientation: 'left' }),
-                                React.createElement(YAxis, { yAxisId: 'cumulative', orientation: 'right' }),
-                                React.createElement(Tooltip),
-                                React.createElement(Legend),
-                                ...selectedActivities.map((activityId, index) => {
-                                    const activity = activityData.find(a => a.id === activityId);
-                                    if (!activity) return null;
-                                    
-                                    return [
-                                        React.createElement(Bar, {
-                                            key: `bar-${activityId}`,
-                                            yAxisId: 'monthly',
-                                            dataKey: `${activityId}_monthly`,
-                                            fill: activity.color,
-                                            name: `${activityId} Monthly`,
-                                            opacity: 0.6
-                                        }),
-                                        React.createElement(Line, {
-                                            key: `line-${activityId}`,
-                                            yAxisId: 'cumulative',
-                                            type: 'monotone',
-                                            dataKey: `${activityId}_cumulative`,
-                                            stroke: activity.color,
-                                            strokeWidth: 2,
-                                            name: `${activityId} Cumulative`
-                                        })
-                                    ];
-                                }).flat().filter(Boolean)
-                            )
-                        )
-                    ),
-
-                    // Instructions
-                    React.createElement('div', { 
-                        className: 'card',
-                        style: { 
-                            background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                            color: 'white'
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time Period'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Monthly Resources'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Cumulative Total'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
                         }
                     },
-                        React.createElement('h3', { className: 'text-2xl font-bold mb-4' },
-                            '🚀 Complete S-Curve Analysis Solution'),
-                        React.createElement('div', { className: 'grid md:grid-cols-3 gap-6' },
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: 'text-lg font-semibold mb-2' }, '🔄 Interactive Analysis'),
-                                React.createElement('ul', { className: 'space-y-1 text-sm' },
-                                    React.createElement('li', null, '• Upload your CSV/Excel files'),
-                                    React.createElement('li', null, '• Real-time chart updates'),
-                                    React.createElement('li', null, '• Interactive activity selection'),
-                                    React.createElement('li', null, '• Visual S-curve analysis'),
-                                    React.createElement('li', null, '• Print/PDF reports')
-                                )
-                            ),
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: 'text-lg font-semibold mb-2' }, '📊 Web-Based Solution'),
-                                React.createElement('ul', { className: 'space-y-1 text-sm' },
-                                    React.createElement('li', null, '• No software installation needed'),
-                                    React.createElement('li', null, '• Works on any device'),
-                                    React.createElement('li', null, '• Instant file processing'),
-                                    React.createElement('li', null, '• Professional visualizations'),
-                                    React.createElement('li', null, '• Share-friendly reports')
-                                )
-                            ),
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: 'text-lg font-semibold mb-2' }, '📋 File Support'),
-                                React.createElement('ul', { className: 'space-y-1 text-sm' },
-                                    React.createElement('li', null, '• CSV files (.csv)'),
-                                    React.createElement('li', null, '• Excel files (.xlsx, .xls)'),
-                                    React.createElement('li', null, '• Same column structure required'),
-                                    React.createElement('li', null, '• Activity ID, Name, then monthly data'),
-                                    React.createElement('li', null, '• Flexible time periods')
-                                )
-                            )
-                        )
-                    )
-                )
-            );
-        };
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatNumber(context.parsed.y);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
-        // Render the app
-        ReactDOM.render(React.createElement(SCurveDashboard), document.getElementById('root'));
-    </script>
-</body>
-</html>
+        // Update detail chart for selected activities
+        function updateDetailChart() {
+            const ctx = document.getElementById('detailChart').getContext('2d');
+            
+            if (detailChart) {
+                detailChart.destroy();
+            }
+
+            if (selectedActivities.length === 0) {
+                // Show empty chart message
+                ctx.fillStyle = '#666';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Select activities above to view detailed analysis', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            const datasets = [];
+            
+            selectedActivities.forEach((activityId, index) => {
+                const activity = projectData.find(a => a.id === activityId);
+                if (!activity) return;
+
+                // Calculate cumulative values
+                const cumulativeValues = [];
+                let cumulative = 0;
+                activity.monthlyValues.forEach(value => {
+                    cumulative += value;
+                    cumulativeValues.push(cumulative);
+                });
+
+                // Monthly bars
+                datasets.push({
+                    type: 'bar',
+                    label: `${activity.id} Monthly`,
+                    data: activity.monthlyValues,
+                    backgroundColor: activity.color + '80',
+                    borderColor: activity.color,
+                    borderWidth: 1,
+                    yAxisID: 'y'
+                });
+
+                // Cumulative line
+                datasets.push({
+                    type: 'line',
+                    label: `${activity.id} Cumulative`,
+                    data: cumulativeValues,
+                    borderColor: activity.color,
+                    backgroundColor: activity.color + '20',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                });
+            });
+
+            detailChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: timeColumns,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time Period'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Monthly Resources'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Cumulative Total'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatNumber(context.parsed.y);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update summary table
+        function updateSummaryTable() {
+            const tbody = document.getElementById('summaryTableBody');
+            tbody.innerHTML = '';
+
+            const totalProject = projectData.reduce((sum, activity) => sum + activity.total, 0);
+
+            projectData.forEach(activity => {
+                const percentage = ((activity.total / totalProject) * 100).toFixed(1);
+                const activeMonths = activity.monthlyValues.filter(v => v > 0).length;
+                
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td style="border: 1px solid #ddd; padding: 12px;">${activity.id}</td>
+                    <td style="border: 1px solid #ddd; padding: 12px;">${activity.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right;">${formatNumber(activity.total)}</td>
+                    <td style="border: 1px solid #ddd; padding: 12px; text-align: right;">${percentage}%</td>
+                    <td style="border: 1px solid #ddd; padding: 12px; text-align: center;">${activeMonths}</td>
+                `;
+            });
+        }
+
+        // Format numbers for display
+        function formatNumber(value) {
+            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+            if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+            return Math.round(value).toLocaleString();
+        }
+
+        // Utility functions
+        function updateDataSource(text) {
+            document.getElementById('data-source').textContent = text;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('show', show);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.classList.add('show');
+        }
+
+        function hideMessages() {
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('success').classList.remove('show');
+        }
+
+        function resetData() {
+            parseData(s
