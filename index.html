@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -460,8 +459,9 @@
         let mainChart = null;
         let detailChart = null;
         let isUsingUploadedData = false;
+        let uploadedFileName = '';
 
-        // Sample data - your original dataset
+        // Sample data
         const sampleCSV = `Activity ID,Activity Name,Start,Finish,Original Duration,Spreadsheet Field,01-Aug-22,01-Sep-22,01-Oct-22,01-Nov-22,01-Dec-22,01-Jan-23,01-Feb-23,01-Mar-23,01-Apr-23,01-May-23,01-Jun-23,01-Jul-23,01-Aug-23,01-Sep-23,01-Oct-23,01-Nov-23,01-Dec-23,01-Jan-24,01-Feb-24,01-Mar-24,01-Apr-24,01-May-24,01-Jun-24,01-Jul-24,01-Aug-24,01-Sep-24,01-Oct-24,01-Nov-24,01-Dec-24,01-Jan-25,01-Feb-25,01-Mar-25
 MEP Labour,,10-Nov-23,19-Feb-25,309d,Budgeted Labor Units,,,,,,,,,,,,,,,,2162,2498,6049,11138,30055,65602,74576,103401,114529,94676,84343,58010,25818,9226,5189,1874,
 J Coffey Labour,,09-Jan-23,05-Sep-24,414d,Budgeted Labor Units,,,,,,5137,8236,7012,11742,18592,23239,20630,27643,24544,21201,26175,10356,12313,13128,8072,3669,1386,1631,2854,4159,326,,,,,,
@@ -470,10 +470,16 @@ Commercial Manager,,16-Aug-22 A,05-Sep-24,507d,Budgeted Labor Units,144,408,1792
 Concrete Slab Labour,,23-Nov-23,23-Sep-24,203d,Budgeted Labor Units,,,,,,,,,,,,,,,,672,800,3008,5888,3872,3104,4576,5216,3408,3984,1312,,,,,,
 Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,,576,384,1728,1872,1872,1344,1968,816,144,,,,`;
 
+        // Initialize the dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+        });
+
         // Initialize the dashboard
         function init() {
             setupEventListeners();
             parseData(sampleCSV);
+            updateDataSource('Sample data loaded', false);
         }
 
         // Setup event listeners
@@ -481,22 +487,32 @@ Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,
             const fileInput = document.getElementById('fileInput');
             const fileUploadArea = document.getElementById('fileUploadArea');
 
-            fileUploadArea.addEventListener('click', () => fileInput.click());
+            // File input change
             fileInput.addEventListener('change', handleFileUpload);
+
+            // Click to upload
+            fileUploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
 
             // Drag and drop functionality
             fileUploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 fileUploadArea.classList.add('dragover');
             });
 
-            fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 fileUploadArea.classList.remove('dragover');
             });
 
             fileUploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 fileUploadArea.classList.remove('dragover');
+                
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
                     processFile(files[0]);
@@ -516,6 +532,7 @@ Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,
         function processFile(file) {
             showLoading(true);
             hideAllMessages();
+            uploadedFileName = file.name;
             
             const fileName = file.name.toLowerCase();
             
@@ -580,7 +597,7 @@ Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,
                 const data = result.data;
                 const headers = result.meta.fields;
                 
-                // Find date columns (usually start after basic info columns)
+                // Find date columns
                 let dateStartIndex = -1;
                 for (let i = 0; i < headers.length; i++) {
                     if (headers[i].match(/\d{2}-\w{3}-\d{2}/) || 
@@ -595,7 +612,6 @@ Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,
                 }
 
                 if (dateStartIndex === -1) {
-                    // Fallback: assume date columns start from index 6
                     dateStartIndex = Math.min(6, headers.length - 1);
                 }
 
@@ -629,10 +645,7 @@ Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,
                     }
                 });
 
-                // Sort by total resources (descending)
                 projectData.sort((a, b) => b.total - a.total);
-                
-                // Select top 5 activities by default
                 selectedActivities = projectData.slice(0, Math.min(5, projectData.length)).map(a => a.id);
                 
                 updateDashboard();
@@ -730,7 +743,6 @@ Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,
         function updateMainChart() {
             const ctx = document.getElementById('mainChart').getContext('2d');
             
-            // Calculate monthly and cumulative totals
             const monthlyTotals = new Array(timeColumns.length).fill(0);
             const cumulativeTotals = new Array(timeColumns.length).fill(0);
             
@@ -856,5 +868,3 @@ Ceiling Labour,,14-Mar-24,05-Nov-24,164d,Budgeted Labor Units,,,,,,,,,,,,,,,,,,,
         // Update detail chart for selected activities
         function updateDetailChart() {
             const ctx = document.getElementById('detailChart').getContext('2d');
-            
-            if (detailChart
